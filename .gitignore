@@ -3,3 +3,5 @@ wandb/
 __MACOSX/
 *.csv
 .ipynb_checkpoints
+*.pth
+
