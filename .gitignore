@@ -1,7 +1,11 @@
 checkpoint/
+.idea/
+__pycache__
+tmp/
 wandb/
 __MACOSX/
 *.csv
-.ipynb_checkpoints
+.ipynb_checkpoints/
 *.pth
-
+*.npy
+*.npz
