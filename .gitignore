@@ -9,3 +9,5 @@ __MACOSX/
 *.pth
 *.npy
 *.npz
+*.jpeg
+*.png
