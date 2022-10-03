@@ -11,3 +11,4 @@ __MACOSX/
 *.npz
 *.jpeg
 *.png
+*.pt
