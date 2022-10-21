@@ -13,3 +13,4 @@ __MACOSX/
 *.png
 *.pt
 *.whl
+third/
