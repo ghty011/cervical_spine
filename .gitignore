@@ -13,4 +13,5 @@ __MACOSX/
 *.png
 *.pt
 *.whl
-third/
+*.txt
+third/yolov7_custom
