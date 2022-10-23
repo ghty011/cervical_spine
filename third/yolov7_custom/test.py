@@ -231,7 +231,7 @@ def test_custom(
                 boundary_df,
                 train_df,
                 epoch=0,
-                log_size=8,     # 8 UID per epoch
+                log_size=2,     # 8 UID per epoch
                 weights=None,
                 batch_size=32,
                 imgsz=640,
@@ -264,9 +264,9 @@ def test_custom(
     # Configure
     model.eval()
 
-    # log_size = 8  # 한번에 8개의 UID 를 체크한다.
-    # UIDs = list(boundary_df.StudyInstanceUID.unique())
-    sample_UIDs = UIDs[(epoch * log_size):((epoch+1) * log_size)]
+    total_UID_len = len(UIDs)
+    start_index = (epoch * log_size) % total_UID_len
+    sample_UIDs = UIDs[start_index:(start_index+log_size)]
     df = boundary_df[boundary_df.StudyInstanceUID.isin(sample_UIDs)].reset_index()
 
     print("test df length : ", len(df))
