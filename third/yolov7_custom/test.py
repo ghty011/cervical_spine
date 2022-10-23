@@ -231,7 +231,7 @@ def test_custom(
                 boundary_df,
                 train_df,
                 epoch=0,
-                log_size=2,     # 8 UID per epoch
+                log_size=8,     # 8 UID per epoch
                 weights=None,
                 batch_size=32,
                 imgsz=640,
