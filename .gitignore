@@ -14,4 +14,3 @@ __MACOSX/
 *.pt
 *.whl
 *.txt
-third/yolov7_custom
