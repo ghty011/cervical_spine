@@ -436,6 +436,9 @@ def train(hyp, opt, device, tb_writer=None):
                                                  compute_loss=compute_loss,
                                                  is_coco=is_coco,
                                                  v5_metric=opt.v5_metric)
+                wandb_logger.log({
+                    'validation_loss' : epoch
+                })
 
             # Write
             with open(results_file, 'a') as f:
