@@ -148,11 +148,18 @@ def cal_loss(prob, label):
     pos_weight = np.array([14, 2, 2, 2, 2, 2, 2, 2])
     neg_weight = np.array([7, 1, 1, 1, 1, 1, 1, 1])
 
-    score = pos_weight * label * np.log(prob) + neg_weight * (1 - label) * np.log(1 - prob)
+    
+    pos_score = (-pos_weight * label * np.log(prob)).sum(axis=1)
+    neg_score = (-neg_weight * (1 - label) * np.log(1 - prob)).sum(axis=1)
+    # print(pos_score)
+    # score = pos_weight * label * np.log(prob) + neg_weight * (1 - label) * np.log(1 - prob)
 
-    weight_total = pos_weight * label + neg_weight * (1 - label)
-
-    return -score.sum(axis=1) / weight_total.sum(axis=1)
+    # weight_total = pos_weight * label + neg_weight * (1 - label)
+    pos_weight_total = (pos_weight * label).sum(axis=1)
+    neg_weight_total = (neg_weight * (1-label)).sum(axis=1)
+    
+    
+    return (pos_score + neg_score) / (pos_weight_total + neg_weight_total), pos_score / (pos_weight_total + 1e-9), neg_score / (neg_weight_total + 1e-9)
 
 
 def get_test_dataloader(df, batch_size=32):
@@ -182,12 +189,19 @@ def get_test_prediction_df(df, predictions):
 def log_test_score(train_df, pred_df, save_path):
     prob = pred_df.values
     label = train_df.loc[pred_df.index].values
-    losses = cal_loss(prob, label)
+    
+    losses, pos_losses, neg_losses = cal_loss(prob, label)
+    # losses = pos_losses + neg_losses
+    
+    
     pred_df["losses"] = losses
+    pred_df["pos_losses"] = pos_losses
+    pred_df["neg_losses"] = neg_losses
+    
     pred_df[['label_patient_overall'] + [f'label_C{i}' for i in range(1, 8)]] = label
     pred_df.to_csv(save_path, mode='a', header=None)
 
-    return float(np.mean(losses))
+    return float(np.mean(losses)), float(np.mean(pos_losses)), float(np.mean(neg_losses))
 
 def test_predict(model, dl, device='cuda', batch_size=32):
 
@@ -231,7 +245,8 @@ def test_custom(
                 boundary_df,
                 train_df,
                 epoch=0,
-                log_size=2,     # 8 UID per epoch
+                log_batch_start=0,
+                log_size=8,     # 8 UID per epoch
                 weights=None,
                 batch_size=32,
                 imgsz=640,
@@ -266,6 +281,7 @@ def test_custom(
 
     total_UID_len = len(UIDs)
     start_index = (epoch * log_size) % total_UID_len
+    start_index += log_batch_start
     sample_UIDs = UIDs[start_index:(start_index+log_size)]
     df = boundary_df[boundary_df.StudyInstanceUID.isin(sample_UIDs)].reset_index()
 
@@ -273,9 +289,9 @@ def test_custom(
     dl = get_test_dataloader(df)
     predictions = test_predict(model, dl)
     pred_df = get_test_prediction_df(df, predictions)
-    loss = log_test_score(train_df, pred_df, save_dir / 'predictions.csv')
-    print("mean validation loss :", loss)
-    return loss
+    loss, pos_loss, neg_loss = log_test_score(train_df, pred_df, save_dir / 'predictions.csv')
+    print("loss :{} pos_loss:{} neg_loss:{}".format(loss, pos_loss, neg_loss))
+    return loss, pos_loss, neg_loss, start_index
 
 def test(data,
          weights=None,

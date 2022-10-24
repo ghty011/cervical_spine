@@ -98,7 +98,7 @@ def create_dataloader(path, imgsz, batch_size, stride, opt, hyp=None, augment=Fa
     # Use torch.utils.data.DataLoader() if dataset.properties will update during training else InfiniteDataLoader()
 
     if is_training:
-        dataloader = loader(dataset,
+        dataloader = torch.utils.data.DataLoader(dataset,
                             batch_size=batch_size,
                             num_workers=nw,
                             shuffle=True,

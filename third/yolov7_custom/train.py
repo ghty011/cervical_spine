@@ -422,8 +422,9 @@ def train(hyp, opt, device, tb_writer=None):
             final_epoch = epoch + 1 == epochs
             if not opt.notest or final_epoch:  # Calculate mAP
                 wandb_logger.current_epoch = epoch + 1
-                results = test.test_custom(UIDs, boundary_df, train_df,
+                results, pos_loss, neg_loss, batch_index = test.test_custom(UIDs, boundary_df, train_df,
                                                         epoch=epoch,
+                                                                            log_batch_start=0,
                                                  batch_size=batch_size * 2,
                                                  imgsz=imgsz_test,
                                                  model=ema.ema,
@@ -436,6 +437,12 @@ def train(hyp, opt, device, tb_writer=None):
                                                  compute_loss=compute_loss,
                                                  is_coco=is_coco,
                                                  v5_metric=opt.v5_metric)
+                wandb_logger.log({
+                    'val/total_loss': results,
+                    'val/pos_loss': pos_loss,
+                    'val/neg_loss': neg_loss,
+                    'val/batch_index' : batch_index
+                })
 
             # Write
             with open(results_file, 'a') as f:
@@ -446,12 +453,12 @@ def train(hyp, opt, device, tb_writer=None):
 
             # Log
             tags = ['train/box_loss', 'train/obj_loss', 'train/cls_loss',  # train loss
-                    'val/mean_loss',
+                    # 'val/mean_loss',
                     # 'metrics/precision', 'metrics/recall', 'metrics/mAP_0.5', 'metrics/mAP_0.5:0.95',
                     # 'val/box_loss', 'val/obj_loss', 'val/cls_loss',  # val loss
                     'x/lr0', 'x/lr1', 'x/lr2']  # params
             # for x, tag in zip(list(mloss[:-1]) + list(results) + lr, tags):
-            for x, tag in zip(list(mloss[:-1]) + [results] + lr, tags):
+            for x, tag in zip(list(mloss[:-1]) + lr, tags):
                 if tb_writer:
                     tb_writer.add_scalar(tag, x, epoch)  # tensorboard
                 if wandb_logger.wandb:
