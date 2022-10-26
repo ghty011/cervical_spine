@@ -97,15 +97,15 @@ def create_dataloader(path, imgsz, batch_size, stride, opt, hyp=None, augment=Fa
     loader = torch.utils.data.DataLoader if image_weights else InfiniteDataLoader
     # Use torch.utils.data.DataLoader() if dataset.properties will update during training else InfiniteDataLoader()
 
-    if is_training:
-        dataloader = torch.utils.data.DataLoader(dataset,
-                            batch_size=batch_size,
-                            num_workers=nw,
-                            shuffle=True,
-                            pin_memory=True,
-                            collate_fn=LoadImagesAndLabels.collate_fn4 if quad else LoadImagesAndLabels.collate_fn)
-    else:
-        dataloader = loader(dataset,
+    #if is_training:
+    #    dataloader = loader(dataset,
+    #                        batch_size=batch_size,
+    #                        num_workers=nw,
+    #                        shuffle=True,
+    #                        pin_memory=True,
+    #                        collate_fn=LoadImagesAndLabels.collate_fn4 if quad else LoadImagesAndLabels.collate_fn)
+    #else:
+    dataloader = loader(dataset,
                             batch_size=batch_size,
                             num_workers=nw,
                             sampler=sampler,
@@ -1024,6 +1024,9 @@ class LoadImagesAndLabelsTraining(Dataset):  # for training/testing
 # Ancillary functions --------------------------------------------------------------------------------------------------
 def load_image(self, index):
     # loads 1 image from dataset, returns img, original hw, resized hw
+    if index >= len(self.imgs):
+        
+        print("image length {}, index {}".format(len(self.imgs), index))
     img = self.imgs[index]
     if img is None:  # not cached
         path = self.img_files[index]
