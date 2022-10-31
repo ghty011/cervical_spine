@@ -17,11 +17,11 @@ import numpy as np
 from effdet.bench import _post_process
 from effdet.anchors import Anchors, decode_box_outputs
 
-IMAGES_DIR = '/root/autodl-tmp/cervical_spine/train_axial_images_jpeg95_croped_132508/'
-MASK_DIR = '/root/autodl-tmp/cervical_spine/segmentation_axial_results_132508/'
+# IMAGES_DIR = '/root/autodl-tmp/cervical_spine/train_axial_images_jpeg95_croped_132508/'
+# MASK_DIR = '/root/autodl-tmp/cervical_spine/segmentation_axial_results_132508/'
 boundary_df_path = '/root/autodl-tmp/cervical_spine/infered_boundary_132508_2.csv'
 train_df_path = '/root/autodl-tmp/cervical_spine/train.csv'
-IMAGE_SIZE = 512
+
 device = 'cuda'
 
 class ImageDataSet(torch.utils.data.Dataset):
@@ -169,9 +169,9 @@ def cal_loss(prob, label):
     # return -score.sum(axis=1) / weight_total.sum(axis=1)
 
 
-def get_test_dataloader(df, batch_size=32, image_size=512):
+def get_test_dataloader(df, batch_size=32, image_size=512, image_dir=None, mask_dir=None):
     tf = ImageTransform(image_size=image_size)
-    ds = ImageDataSet(df, IMAGES_DIR, MASK_DIR, tf)
+    ds = ImageDataSet(df, image_dir, mask_dir, tf)
 
     dl = torch.utils.data.DataLoader(ds, batch_size=batch_size, shuffle=False, pin_memory=False, num_workers=min(16, batch_size))
     return dl
@@ -220,9 +220,10 @@ def test_predict(model, dl, batch_size=32, model_name='effdet', image_size=512, 
 
         for x, mask in tqdm(dl):
             x = x.to(device)
+            # print(x.shape, x.min(), x.max())
             mask = mask.to(device)
 
-            batch_probs = x.new_zeros((x.shape[0], 8)) + 1e-2
+            batch_probs = x.new_zeros((x.shape[0], 8)) + 1e-3
 
             active_indices = mask.sum(axis=[1, 2, 3]).nonzero().reshape(-1)
 
@@ -252,12 +253,15 @@ def test_predict(model, dl, batch_size=32, model_name='effdet', image_size=512, 
 
 
 class Evaluate():
-    def __init__(self, model, save_dir, log_size=8, model_name='effdet'):
+    def __init__(self, model, save_dir, image_size, image_dir, mask_dir, log_size=8, model_name='effdet'):
         
         self.log_size = log_size
+        self.image_dir = image_dir
+        self.mask_dir = mask_dir
         self.save_dir = save_dir
         self.model_name = model_name
         self.model = model
+        self.image_size = image_size
         self.boundary_df = pd.read_csv(boundary_df_path)
         self.train_df = pd.read_csv(train_df_path).set_index('StudyInstanceUID')
         self.UIDs = list(self.boundary_df.StudyInstanceUID.unique())
@@ -265,7 +269,7 @@ class Evaluate():
         if model_name == 'effdet':
             self.anchors = Anchors.from_config(model.config).to(device)
     
-    def evaluate(self, epoch, batch_size=16, image_size=512):
+    def evaluate(self, epoch, batch_size=16):
         
         log_size = self.log_size
         boundary_df = self.boundary_df
@@ -287,8 +291,8 @@ class Evaluate():
         df = boundary_df[boundary_df.StudyInstanceUID.isin(sample_UIDs)].reset_index()
 
         print("test df length : ", len(df))
-        dl = get_test_dataloader(df, batch_size=batch_size, image_size=image_size)
-        predictions = test_predict(model, dl, anchors=self.anchors)
+        dl = get_test_dataloader(df, batch_size=batch_size, image_size=self.image_size, image_dir=self.image_dir, mask_dir=self.mask_dir)
+        predictions = test_predict(model, dl, anchors=self.anchors, image_size=self.image_size)
         pred_df = get_test_prediction_df(df, predictions)
         
         loss, pos_loss, neg_loss = log_test_score(train_df, pred_df, save_dir + '_predictions.csv')
